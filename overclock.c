@@ -290,20 +290,6 @@ static void stats_find_addr(void)
 	}
 }
 
-static int proc_info_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "cpumin=%u cpumax=%u min=%u max=%u usermin=%u usermax=%u\nclk_get_rate=%lu\n",
-				policy->cpuinfo.min_freq, policy->cpuinfo.max_freq, policy->min, policy->max, policy->user_policy.min, policy->user_policy.max, clk_get_rate(mpu_clk) / 1000);
-
-	return ret;
-}
-
 static int proc_max_rate_read(char *buffer, char **buffer_location,
 		off_t offset, int count, int *eof, void *data)
 {
@@ -368,155 +354,6 @@ static int proc_max_vsel_write(struct file *filp, const char __user *buffer,
 		max_vsel = newvsel;
 		set_max_speed();
 	}
-
-	return len;
-}
-
-static int proc_mpu_opps_addr_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "0x%x\n", (uint)mpu_opps_addr);
-
-	return ret;
-}
-
-static int proc_mpu_opps_addr_write(struct file *filp, const char __user *buffer,
-		unsigned long len, void *data)
-{
-	ulong newaddr;
-	int result;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if((result = strict_strtoul(buf, 0, &newaddr)))
-		return result;
-	mpu_opps_addr = newaddr;
-	if(mpu_opps_addr)
-		my_mpu_opps = *(struct omap_opp **)mpu_opps_addr;
-	else
-		error_mpu_opps();
-
-	return len;
-}
-
-static int proc_omap2_clk_init_cpufreq_table_addr_read(char *buffer,
-		char **buffer_location, off_t offset, int count, int *eof,
-		void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "0x%x\n",
-			(uint)omap2_clk_init_cpufreq_table_addr);
-
-	return ret;
-}
-
-static int proc_omap2_clk_init_cpufreq_table_addr_write(struct file *filp,
-		const char __user *buffer, unsigned long len, void *data)
-{
-	ulong newaddr;
-	int result;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if((result = strict_strtoul(buf, 0, &newaddr)))
-		return result;
-	omap2_clk_init_cpufreq_table_addr = newaddr;
-	if(omap2_clk_init_cpufreq_table_addr)
-		omap2_find_addr();
-	if(mpu_opps_addr)
-		my_mpu_opps = *(struct omap_opp **)mpu_opps_addr;
-	else
-		error_mpu_opps();
-
-	return len;
-}
-
-static int proc_cpufreq_stats_table_addr_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "0x%x\n", (uint)cpufreq_stats_table_addr);
-
-	return ret;
-}
-
-static int proc_cpufreq_stats_table_addr_write(struct file *filp,
-		const char __user *buffer,
-		unsigned long len, void *data)
-{
-	ulong newaddr;
-	int result;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if((result = strict_strtoul(buf, 0, &newaddr)))
-		return result;
-	cpufreq_stats_table_addr = newaddr;
-	if(cpufreq_stats_table_addr)
-		cpufreq_stats_table = *(struct cpufreq_stats **)cpufreq_stats_table_addr;
-	else
-		error_cpufreq_stats_table();
-
-	return len;
-}
-
-static int proc_cpufreq_stats_update_addr_read(char *buffer,
-		char **buffer_location, off_t offset, int count, int *eof,
-		void *data)
-{
-	int ret;
-
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "0x%x\n",
-			(uint)cpufreq_stats_update_addr);
-
-	return ret;
-}
-
-static int proc_cpufreq_stats_update_addr_write(struct file *filp,
-		const char __user *buffer, unsigned long len, void *data)
-{
-	ulong newaddr;
-	int result;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if((result = strict_strtoul(buf, 0, &newaddr)))
-		return result;
-	cpufreq_stats_update_addr = newaddr;
-	if(cpufreq_stats_update_addr)
-		stats_find_addr();
-	if(cpufreq_stats_table_addr)
-		cpufreq_stats_table = *(struct cpufreq_stats **)cpufreq_stats_table_addr;
-	else
-		error_cpufreq_stats_table();
 
 	return len;
 }
@@ -615,19 +452,6 @@ static int proc_mpu_opps_write(struct file *filp, const char __user *buffer,
 
 	return len;
 }                        
-                        
-static int proc_version_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "%s\n", DRIVER_VERSION);
-
-	return ret;
-}
 
 static int __init overclock_init(void)
 {
@@ -636,12 +460,10 @@ static int __init overclock_init(void)
 	printk(KERN_INFO "overclock: %s version %s\n", DRIVER_DESCRIPTION, DRIVER_VERSION);
 	printk(KERN_INFO "overclock: by %s\n", DRIVER_AUTHOR);
 
-#ifdef LOOKUP
-	if(!omap2_clk_init_cpufreq_table_addr)
-		omap2_clk_init_cpufreq_table_addr = lookup_symbol_address("omap2_clk_init_cpufreq_table");
-	if(!cpufreq_stats_update_addr)
-		cpufreq_stats_update_addr = lookup_symbol_address("cpufreq_stats_update");
-#endif
+/*
+	Addresses can only be used on my kernel, please manually change the following two addresses
+	to make it compatible on your own kernel.
+*/
 	omap2_clk_init_cpufreq_table_addr = 0xc00416a4;
 	cpufreq_stats_update_addr = 0xc0270ddc;
 
@@ -668,40 +490,24 @@ static int __init overclock_init(void)
 	buf = (char *)vmalloc(BUF_SIZE);
 
 	proc_mkdir("overclock", NULL);
-	proc_entry = create_proc_read_entry("overclock/info", 0444, NULL, proc_info_read, NULL);
 	proc_entry = create_proc_read_entry("overclock/max_rate", 0644, NULL, proc_max_rate_read, NULL);
 	proc_entry->write_proc = proc_max_rate_write;
 	proc_entry = create_proc_read_entry("overclock/max_vsel", 0644, NULL, proc_max_vsel_read, NULL);
 	proc_entry->write_proc = proc_max_vsel_write;
-	proc_entry = create_proc_read_entry("overclock/mpu_opps_addr", 0644, NULL, proc_mpu_opps_addr_read, NULL);
-	proc_entry->write_proc = proc_mpu_opps_addr_write;
-	proc_entry = create_proc_read_entry("overclock/omap2_clk_init_cpufreq_table_addr", 0644, NULL, proc_omap2_clk_init_cpufreq_table_addr_read, NULL);
-	proc_entry->write_proc = proc_omap2_clk_init_cpufreq_table_addr_write;
-	proc_entry = create_proc_read_entry("overclock/cpufreq_stats_table_addr", 0644, NULL, proc_cpufreq_stats_table_addr_read, NULL);
-	proc_entry->write_proc = proc_cpufreq_stats_table_addr_write;
-	proc_entry = create_proc_read_entry("overclock/cpufreq_stats_update_addr", 0644, NULL, proc_cpufreq_stats_update_addr_read, NULL);
-	proc_entry->write_proc = proc_cpufreq_stats_update_addr_write;
 	proc_entry = create_proc_read_entry("overclock/freq_table", 0644, NULL, proc_freq_table_read, NULL);
 	proc_entry->write_proc = proc_freq_table_write;
 	proc_entry = create_proc_read_entry("overclock/mpu_opps", 0644, NULL, proc_mpu_opps_read, NULL);
 	proc_entry->write_proc = proc_mpu_opps_write;
-	proc_entry = create_proc_read_entry("overclock/version", 0444, NULL, proc_version_read, NULL);
 
 	return 0;
 }
 
 static void __exit overclock_exit(void)
 {
-	remove_proc_entry("overclock/version", NULL);
 	remove_proc_entry("overclock/mpu_opps", NULL);
 	remove_proc_entry("overclock/freq_table", NULL);
-	remove_proc_entry("overclock/cpufreq_stats_update_addr", NULL);
-	remove_proc_entry("overclock/cpufreq_stats_table_addr", NULL);
-	remove_proc_entry("overclock/omap2_clk_init_cpufreq_table_addr", NULL);
-	remove_proc_entry("overclock/mpu_opps_addr", NULL);
 	remove_proc_entry("overclock/max_vsel", NULL);
 	remove_proc_entry("overclock/max_rate", NULL);
-	remove_proc_entry("overclock/info", NULL);
 	remove_proc_entry("overclock", NULL);
 	 
 	vfree(buf);
