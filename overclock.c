@@ -522,5 +522,6 @@ static void __exit overclock_exit(void)
 }
 
 module_init(overclock_init);
+#ifndef PERMANENT
 module_exit(overclock_exit);
-
+#endif
