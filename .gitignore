@@ -1,0 +1,7 @@
+modules.order
+overclock.mod.c
+*.o
+*.ko
+*.cmd
+.tmp_versions/*
+/Module.symvers
