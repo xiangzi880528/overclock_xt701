@@ -235,27 +235,6 @@ static void error_cpufreq_stats_table(void)
 	printk(KERN_INFO "overclock: cpufreq_stats_table address not configured, aborting action\n");
 }
 
-static void set_max_speed(void)
-{
-	printk(KERN_INFO "overclock: setting max_rate %u and max_vsel %u\n",
-		max_rate, max_vsel);
-	if(!my_mpu_opps) {
-		error_mpu_opps();
-		return;
-	}
-	freq_table[0].frequency = policy->max = policy->cpuinfo.max_freq =
-		policy->user_policy.max = max_rate;
-	if(cpufreq_stats_table)	/* can overclock without it */
-		cpufreq_stats_table->freq_table[0] = max_rate;
-	else
-		error_cpufreq_stats_table();
-	my_mpu_opps[MAX_VDD1_OPP].vsel = max_vsel;
-#ifdef SMARTREFLEX
-	my_mpu_opps[MAX_VDD1_OPP].sr_adjust_vsel = max_vsel;
-#endif
-	my_mpu_opps[MAX_VDD1_OPP].rate = max_rate*1000;
-}
-
 static void omap2_find_addr(void)
 {
 	unsigned char *func = (void *)omap2_clk_init_cpufreq_table_addr;
@@ -288,74 +267,6 @@ static void stats_find_addr(void)
 			break;
 		}
 	}
-}
-
-static int proc_max_rate_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "%u\n", max_rate);
-
-	return ret;
-}
-
-static int proc_max_rate_write(struct file *filp, const char __user *buffer,
-		unsigned long len, void *data)
-{
-	ulong newrate;
-	int result;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if((result = strict_strtoul(buf, 0, &newrate)))
-		return result;
-	if(max_rate != newrate) {
-		max_rate = newrate;
-		set_max_speed();
-	}
-
-	return len;
-}
-
-static int proc_max_vsel_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int ret;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		ret = scnprintf(buffer, count, "%u\n", max_vsel);
-
-	return ret;
-}
-
-static int proc_max_vsel_write(struct file *filp, const char __user *buffer,
-		unsigned long len, void *data)
-{
-	ulong newvsel;
-	int result;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if((result = strict_strtoul(buf, 0, &newvsel)))
-		return result;
-	if(max_vsel != newvsel) {
-		max_vsel = newvsel;
-		set_max_speed();
-	}
-
-	return len;
 }
 
 static int proc_freq_table_read(char *buffer, char **buffer_location,
@@ -490,10 +401,6 @@ static int __init overclock_init(void)
 	buf = (char *)vmalloc(BUF_SIZE);
 
 	proc_mkdir("overclock", NULL);
-	proc_entry = create_proc_read_entry("overclock/max_rate", 0644, NULL, proc_max_rate_read, NULL);
-	proc_entry->write_proc = proc_max_rate_write;
-	proc_entry = create_proc_read_entry("overclock/max_vsel", 0644, NULL, proc_max_vsel_read, NULL);
-	proc_entry->write_proc = proc_max_vsel_write;
 	proc_entry = create_proc_read_entry("overclock/freq_table", 0644, NULL, proc_freq_table_read, NULL);
 	proc_entry->write_proc = proc_freq_table_write;
 	proc_entry = create_proc_read_entry("overclock/mpu_opps", 0644, NULL, proc_mpu_opps_read, NULL);
@@ -506,8 +413,6 @@ static void __exit overclock_exit(void)
 {
 	remove_proc_entry("overclock/mpu_opps", NULL);
 	remove_proc_entry("overclock/freq_table", NULL);
-	remove_proc_entry("overclock/max_vsel", NULL);
-	remove_proc_entry("overclock/max_rate", NULL);
 	remove_proc_entry("overclock", NULL);
 	 
 	vfree(buf);
