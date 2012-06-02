@@ -395,9 +395,6 @@ static int __init overclock_init(void)
 	else
 		cpufreq_stats_table = 0;
 
-	if(max_rate != DRIVER_DEFAULT_RATE || max_vsel != DRIVER_DEFAULT_VSEL)
-		set_max_speed();
-
 	buf = (char *)vmalloc(BUF_SIZE);
 
 	proc_mkdir("overclock", NULL);
@@ -416,12 +413,6 @@ static void __exit overclock_exit(void)
 	remove_proc_entry("overclock", NULL);
 	 
 	vfree(buf);
-
-	if(max_rate != DRIVER_DEFAULT_RATE || max_vsel != DRIVER_DEFAULT_VSEL) {
-		max_rate = DRIVER_DEFAULT_RATE;
-		max_vsel = DRIVER_DEFAULT_VSEL;
-		set_max_speed();
-	}
 
 	printk(KERN_INFO "overclock: removed overclocking and unloaded\n");
 }
