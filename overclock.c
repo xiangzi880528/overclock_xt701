@@ -267,47 +267,7 @@ static void stats_find_addr(void)
 			break;
 		}
 	}
-}
-
-static int proc_freq_table_read(char *buffer, char **buffer_location,
-		off_t offset, int count, int *eof, void *data)
-{
-	int i, ret = 0;
-	
-	if (offset > 0)
-		ret = 0;
-	else
-		for(i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++) {
-			if(ret >= count)
-				break;
-			ret += scnprintf(buffer+ret, count-ret, "freq_table[%d] index=%u frequency=%u\n", i, freq_table[i].index, freq_table[i].frequency);
-		}
-
-	return ret;
-}
-
-static int proc_freq_table_write(struct file *filp, const char __user *buffer,
-		unsigned long len, void *data)
-{
-	uint index, frequency;
-
-	if(!len || len >= BUF_SIZE)
-		return -ENOSPC;
-	if(copy_from_user(buf, buffer, len))
-		return -EFAULT;
-	buf[len] = 0;
-	if(sscanf(buf, "%d %d", &index, &frequency) == 2) {
-		freq_table[index].frequency = frequency;
-		if(cpufreq_stats_table)
-			cpufreq_stats_table->freq_table[index] = frequency;
-		else
-			error_cpufreq_stats_table();
-
-	} else
-		printk(KERN_INFO "overclock: insufficient parameters for freq_table\n");
-
-	return len;
-}                        
+}           
                         
 static int proc_mpu_opps_read(char *buffer, char **buffer_location,
 		off_t offset, int count, int *eof, void *data)
@@ -358,6 +318,11 @@ static int proc_mpu_opps_write(struct file *filp, const char __user *buffer,
 #ifdef SMARTREFLEX
 		my_mpu_opps[index].sr_adjust_vsel = vsel;
 #endif
+		freq_table[6 - index].frequency = rate / 1000;
+		if(cpufreq_stats_table)
+			cpufreq_stats_table->freq_table[6 - index] = rate / 1000;
+		else
+			error_cpufreq_stats_table();
 	} else
 		printk(KERN_INFO "overclock: insufficient parameters for mpu_opps\n");
 
@@ -398,8 +363,6 @@ static int __init overclock_init(void)
 	buf = (char *)vmalloc(BUF_SIZE);
 
 	proc_mkdir("overclock", NULL);
-	proc_entry = create_proc_read_entry("overclock/freq_table", 0644, NULL, proc_freq_table_read, NULL);
-	proc_entry->write_proc = proc_freq_table_write;
 	proc_entry = create_proc_read_entry("overclock/mpu_opps", 0644, NULL, proc_mpu_opps_read, NULL);
 	proc_entry->write_proc = proc_mpu_opps_write;
 
@@ -409,7 +372,6 @@ static int __init overclock_init(void)
 static void __exit overclock_exit(void)
 {
 	remove_proc_entry("overclock/mpu_opps", NULL);
-	remove_proc_entry("overclock/freq_table", NULL);
 	remove_proc_entry("overclock", NULL);
 	 
 	vfree(buf);
