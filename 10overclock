@@ -1,0 +1,6 @@
+echo "6 850000000 52" > /proc/overclock/mpu_opps
+echo "5 720000000 45" > /proc/overclock/mpu_opps
+echo "4 600000000 42" > /proc/overclock/mpu_opps
+echo "3 500000000 37" > /proc/overclock/mpu_opps
+echo "2 370000000 35" > /proc/overclock/mpu_opps
+echo "1 250000000 28" > /proc/overclock/mpu_opps
